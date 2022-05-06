@@ -120,9 +120,10 @@
               "topRight": "右上"
             }
           },
-          "client": {
+          "system": {
             "label": "システム",
             "fields": {
+              "siteUpdates": "Site Updated",
               "floodDetected": "スパム検知"
             }
           },
@@ -130,8 +131,7 @@
             "label": "アカウント",
             "fields": {
               "loggedIn": "ログイン通知",
-              "loggedOut": "ログアウト通知",
-              "badgeUnlocked": "バッジ獲得通知"
+              "loggedOut": "ログアウト通知"
             }
           },
           "parties": {
@@ -159,6 +159,12 @@
               "listUpdated": "ドリームラリー更新通知"
             }
           },
+          "badges": {
+            "label": "バッジ",
+            "fields": {
+              "badgeUnlocked": "バッジ獲得通知"
+            }
+          },
           "saveSync": {
             "label": "セーブデータ同期",
             "fields": {
@@ -176,6 +182,7 @@
         "title": "アカウント設定",
         "fields": {
           "badge": "バッジ",
+          "badgeGallery": "バッジギャラリー管理",
           "toggleSaveSync": "セーブデータ同期(実験的)",
           "saveSyncSlotId": {
             "label": "同期させるセーブデータスロット",
@@ -188,6 +195,9 @@
       },
       "badges": {
         "title": "バッジ"
+      },
+      "badgeGallery": {
+        "title": "バッジギャラリー設定"
       },
       "uiTheme": {
         "title": "メニュー タイプ",
@@ -363,13 +373,13 @@
       "confirmEnableWithData": "このアカウントには既にセーブデータが保存されています。同じスロットに別のセーブデータが保存されている場合、サーバー側に保存されているセーブデータで上書きされます。この機能を有効にした状態でページを再読み込みした場合にのみ反映されますのでご注意ください。本当にセーブデータ同期を有効にしますか？"
     },
     "toast": {
-      "client": {
+      "system": {
+        "siteUpdates": "The site has been updated. Reload the page to get the newest changes.",
         "floodDetected": "スパム攻撃されている可能性があると検知されました。一人用モードに切り替えました。"
       },
       "account": {
         "loggedIn": "{USER}でログインしました。",
-        "loggedOut": "ログアウトしました。",
-        "badgeUnlocked": "バッジを獲得しました！"
+        "loggedOut": "ログアウトしました。"
       },
       "parties": {
         "create": "{PARTY}が 作成されました。",
@@ -389,6 +399,9 @@
         "complete": "＜ドリームラリー＞ {LOCATION}に 到達したので、 {EXP}を 獲得しました！",
         "freeComplete": "＜ドリームラリー＞ {LOCATION}に 到達しました！",
         "listUpdated": "＜ドリームラリー＞ ドリームリストが 更新されました！"
+      },
+      "badges": {
+        "badgeUnlocked": "バッジを獲得しました！"
       },
       "saveSync": {
         "saveUploading": "スロット{SLOT}からセーブデータをアップロードしています…",
@@ -428,7 +441,12 @@
       "location": "場所：",
       "goalProgress": "{CURRENT}/{TOTAL}",
       "percentUnlocked": "このバッジを持っているプレイヤーの割合:{PERCENT}%",
-      "time": "{MINUTES}:{SECONDS}"
+      "time": "{MINUTES}:{SECONDS}",
+      "artCredit": "Art by {ARTIST}"
+    },
+    "badgeGallery": {
+      "label": "{PLAYER}のバッジギャラリー",
+      "loading": "ロード中…"
     },
     "rankings": {
       "categories": {

@@ -92,7 +92,7 @@ function onUpdateConnectionStatus(status) {
   connStatus = status;
 
   if (status === 1) {
-    addOrUpdatePlayerListEntry(null, systemName, playerName, defaultUuid);
+    addOrUpdatePlayerListEntry(null, systemName, playerName, defaultUuid, false, true);
     fetchAndUpdatePlayerCount();
     checkEventLocations();
     if (!hasConnected) {
@@ -121,6 +121,7 @@ function fetchAndUpdatePlayerInfo() {
         if (jsonResponse.name)
           playerName = jsonResponse.name;
         syncPlayerData(jsonResponse.uuid, jsonResponse.rank, !!sessionId, jsonResponse.badge, -1);
+        badgeSlotRows = jsonResponse.badgeSlotRows || 1;
         if (isLogin) {
           trySetChatName(playerName);
           showAccountToastMessage('loggedIn', 'join', getPlayerName(playerData, true, false, true));
@@ -128,7 +129,11 @@ function fetchAndUpdatePlayerInfo() {
             updateEventLocationList();
           else
             updateEventPeriod();
-          updateBadges();
+          updateBadges(() => {
+            const badgeId = jsonResponse.badge || 'null';
+            const badge = badgeCache.find(b => b.badgeId === badgeId);
+            document.getElementById('badgeButton').innerHTML = getBadgeItem(badge || { badgeId: 'null' }, false, true).innerHTML;
+          });
           document.getElementById('content').classList.add('loggedIn');
         } else if (isLogout) {
           trySetChatName('');
@@ -273,7 +278,7 @@ function checkUpdateLocation(mapId, mapChanged) {
       addChatMapLocation();
 
       if (is2kki) {
-        const locationNames = locations ? locations.filter(l => l.explorer).map(l => l.title) : [];
+        const locationNames = locations ? locations.filter(l => !l.hasOwnProperty('explorer') || l.explorer).map(l => l.title) : [];
         set2kkiExplorerLinks(locationNames);
         if (locationNames.length)
           queryAndSet2kkiMaps(locationNames).catch(err => console.error(err));
@@ -607,6 +612,7 @@ document.getElementById('floodProtectionButton').onclick = () => {
 };
 
 initAccountControls();
+initBadgeControls();
 initSaveDataControls();
 initPartyControls();
 initEventControls();
@@ -923,10 +929,6 @@ document.onmousemove = function () {
   }
 };
 
-window.onbeforeunload = function () {
-  return localizedMessages.leavePage;
-};
-
 function setLang(lang, isInit) {
   globalConfig.lang = lang;
   if (isInit && localizedGameIds.indexOf(gameId) > -1)
@@ -953,7 +955,7 @@ function onSelectUiTheme(e) {
 
 function initLocalization(isInitial) {
   document.getElementsByTagName('html')[0].lang = globalConfig.lang;
-  fetch(`lang/${globalConfig.lang}.json`)
+  fetchNewest(`lang/${globalConfig.lang}.json`)
     .then(response => response.json())
     .then(function (jsonResponse) {
       const version = jsonResponse.version[gameId];
@@ -1003,7 +1005,7 @@ function initLocalization(isInitial) {
         for (let langOpt of languages) {
           const lang = langOpt.value;
           if (gameDefaultLangs.hasOwnProperty(gameId) ? gameDefaultLangs[gameId] !== lang : lang !== 'en')
-            fetch(`../data/${gameId}/Language/${lang}/meta.ini`).then(response => {
+            fetchNewest(`../data/${gameId}/Language/${lang}/meta.ini`).then(response => {
               if (!response.ok && response.status === 404) {
                 langOpt.innerText += '*';
                 langOpt.dataset.noGameLoc = true;
@@ -1017,11 +1019,8 @@ function initLocalization(isInitial) {
         noGameLocInstruction.classList.toggle('hidden', !document.querySelector(`#lang option[value='${globalConfig.lang}']`).dataset.noGameLoc);
       }
 
-      fetch(`lang/badge/${globalConfig.lang}.json`)
-        .then(response => response.json())
-        .then(function (jsonResponse) {
-          localizedBadges = jsonResponse;
-        });
+      updateLocalizedBadgeGroups();
+      updateLocalizedBadges();
 
       const resourcesJson = {};
       resourcesJson[globalConfig.lang] = { translation: jsonResponse.ui };
@@ -1043,7 +1042,7 @@ function initLocalization(isInitial) {
 }
 
 function initLocations(lang, game, callback) {
-  fetch(`locations/${game}/config.json`)
+  fetchNewest(`locations/${game}/config.json`)
     .then(response => {
         if (!response.ok)
           throw new Error(response.statusText);
@@ -1086,7 +1085,7 @@ function initLocations(lang, game, callback) {
 
 function initLocalizedMapLocations(lang, game, callback) {
   const fileName = lang === 'en' ? 'config' : lang;
-  fetch(`locations/${game}/${fileName}.json`)
+  fetchNewest(`locations/${game}/${fileName}.json`)
     .then(response => {
       if (!response.ok) {
         gameLocalizedMapLocations[game] = gameMapLocations[game];
@@ -1317,7 +1316,7 @@ function getInfoLabel(label) {
 }
 
 function fetchAndPopulateYnomojiConfig() {
-  fetch('ynomoji.json')
+  fetchNewest('ynomoji.json')
     .then(response => response.json())
     .then(jsonResponse => {
       ynomojiConfig = jsonResponse;

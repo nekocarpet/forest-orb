@@ -120,9 +120,10 @@
               "topRight": "Наверху Справа"
             }
           },
-          "client": {
+          "system": {
             "label": "Система",
             "fields": {
+              "siteUpdates": "Site Updated",
               "floodDetected": "Вероятность спам-атаки"
             }
           },
@@ -130,8 +131,7 @@
             "label": "Аккаунт",
             "fields": {
               "loggedIn": "Вход",
-              "loggedOut": "Выход",
-              "badgeUnlocked": "Значок Открыт"
+              "loggedOut": "Выход"
             }
           },
           "parties": {
@@ -159,6 +159,12 @@
               "listUpdated": "Список Походов Обновлён"
             }
           },
+          "badges": {
+            "label": "Значки",
+            "fields": {
+              "badgeUnlocked": "Значок Открыт"
+            }
+          },
           "saveSync": {
             "label": "Облачное Сохранение",
             "fields": {
@@ -176,6 +182,7 @@
         "title": "Настройки Аккаунта",
         "fields": {
           "badge": "Значок",
+          "badgeGallery": "Manage Badge Gallery",
           "toggleSaveSync": "Облачное Сохранение (Экспериментальное)",
           "saveSyncSlotId": {
             "label": "ID Слота для Синхронизации",
@@ -188,6 +195,9 @@
       },
       "badges": {
         "title": "Значки"
+      },
+      "badgeGallery": {
+        "title": "Manage Badge Gallery"
       },
       "uiTheme": {
         "title": "Стиль Интерфейса",
@@ -363,13 +373,13 @@
       "confirmEnableWithData": "Обнаружены данные другого Облачного Сохранения в Аккаунте. Если есть Сохранение из облака новее, Сохранение в слоту, что указан как Облачный, будет перезаписано. Учтите, что для применения изменений будет необходимо перезагрузить страницу, имея опцию Облачного Сохранения включённой. Вы уверены, что хотите включить Облачное Сохранение?"
     },
     "toast": {
-      "client": {
+      "system": {
+        "siteUpdates": "The site has been updated. Reload the page to get the newest changes.",
         "floodDetected": "Замечена возможность спам-атаки: Происходит переключение в одиночный режим."
       },
       "account": {
         "loggedIn": "Вы вошли как {USER}.",
-        "loggedOut": "Вы вышли из аккаунта.",
-        "badgeUnlocked": "Значок разблокирован!"
+        "loggedOut": "Вы вышли из аккаунта."
       },
       "parties": {
         "create": "Была создана {PARTY}.",
@@ -389,6 +399,9 @@
         "complete": "Поход Завершён!\nВы получаете {EXP} за Посещение {LOCATION}.",
         "freeComplete": "Поход Завершён!\nВы посетили {LOCATION}.",
         "listUpdated": "Список Походов Обновлён."
+      },
+      "badges": {
+        "badgeUnlocked": "Значок разблокирован!"
       },
       "saveSync": {
         "saveUploading": "Выгружаем в облако данные Слота {SLOT}...",
@@ -428,7 +441,12 @@
       "location": "Локация:&nbsp;",
       "goalProgress": "{CURRENT}/{TOTAL}",
       "percentUnlocked": "{PERCENT}% игроков имеют этот значок",
-      "time": "{MINUTES}:{SECONDS}"
+      "time": "{MINUTES}:{SECONDS}",
+      "artCredit": "Art by {ARTIST}"
+    },
+    "badgeGallery": {
+      "label": "{PLAYER}'s Badge Gallery",
+      "loading": "Loading..."
     },
     "rankings": {
       "categories": {

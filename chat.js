@@ -115,22 +115,30 @@ function chatboxAddMessage(msg, type, player, mapId, prevMapId, prevLocationsStr
     let systemName = player?.systemName;
 
     const badge = player?.badge ? document.createElement('div') : null;
-    const badgeOverlay = badge && player.badge === 'mono' ? document.createElement('div') : null;
+    const badgeOverlay = badge && overlayBadgeIds.indexOf(player.badge) > -1 ? document.createElement('div') : null;
 
     if (badge) {
       badge.classList.add('badge');
       badge.classList.add('nameBadge');
 
-      const badgeGame = Object.keys(localizedBadges).find(game => {
-        return Object.keys(localizedBadges[game]).find(b => b === player.badge);
-      });
-      if (badgeGame)
-        addTooltip(badge, getMassagedLabel(localizedBadges[badgeGame][player.badge].name, true), true, true);
+      if (localizedBadges) {
+        const badgeGame = Object.keys(localizedBadges).find(game => {
+          return Object.keys(localizedBadges[game]).find(b => b === player.badge);
+        });
+        if (badgeGame)
+          addTooltip(badge, getMassagedLabel(localizedBadges[badgeGame][player.badge].name, true), true, true);
+      }
+      if (player?.name) {
+        addOrUpdatePlayerBadgeGalleryTooltip(badge, player.name, systemName || getDefaultUiTheme());
+        badge.classList.toggle('badgeButton', player.name);
+      }
 
       const badgeUrl = `images/badge/${player.badge}.png`;
       badge.style.backgroundImage = `url('${badgeUrl}')`;
 
       if (badgeOverlay) {
+        badge.classList.add('overlayBadge');
+
         badgeOverlay.classList.add('badgeOverlay');
         badgeOverlay.setAttribute('style', `-webkit-mask-image: url('${badgeUrl}'); mask-image: url('${badgeUrl}');`);
         badge.appendChild(badgeOverlay);
@@ -260,7 +268,7 @@ function trySetChatName(name) {
       playerData.name = playerName;
       globalPlayerData[playerData.uuid].name = playerName;
     }
-    addOrUpdatePlayerListEntry(null, systemName, playerName, defaultUuid);
+    addOrUpdatePlayerListEntry(null, systemName, playerName, defaultUuid, false, true);
     const ptr = Module.allocate(Module.intArrayFromString(playerName), Module.ALLOC_NORMAL);
     Module._ChangeName(ptr);
     Module._free(ptr);

@@ -72,7 +72,7 @@ function getPlayerName(player, includeMarkers, includeBadge, asHtml) {
       badge.classList.add('badge');
       badge.classList.add('nameBadge');
 
-      badgeOverlay = badge && player.badge === 'mono' ? document.createElement('div') : null;
+      badgeOverlay = badge && overlayBadgeIds.indexOf(player.badge) > -1 ? document.createElement('div') : null;
 
       if (localizedBadges) {
         const badgeGame = Object.keys(localizedBadges).find(game => {
@@ -86,6 +86,8 @@ function getPlayerName(player, includeMarkers, includeBadge, asHtml) {
       badge.style.backgroundImage = `url('${badgeUrl}')`;
 
       if (badgeOverlay) {
+        badge.classList.add('overlayBadge');
+
         badgeOverlay.classList.add('badgeOverlay');
         badgeOverlay.setAttribute('style', `-webkit-mask-image: url('${badgeUrl}'); mask-image: url('${badgeUrl}');`);
         badge.appendChild(badgeOverlay);
@@ -125,7 +127,7 @@ function getPlayerName(player, includeMarkers, includeBadge, asHtml) {
   return playerName;
 }
 
-function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLocation) {
+function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLocation, sortEntries) {
   if (!playerList)
     playerList = document.getElementById('playerList');
 
@@ -206,14 +208,14 @@ function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLoca
       banAction.classList.add('listEntryAction');
       banAction.href = 'javascript:void(0);';
       banAction.onclick = function () {
-        if (confirm(`Are you sure you want to permanently ban ${getPlayerName(player, true, false, true)}?`)) {
+        if (confirm(`Are you sure you want to permanently ban ${getPlayerName(player, true)}?`)) {
           apiFetch(`admin?command=ban&player=${uuid}`)
             .then(response => {
               if (!response.ok)
                 throw new Error(response.statusText);
               return response.text();
             })
-            .then(_ => showToastMessage(`${getPlayerName(player, true, false, true)} has been banned.`, 'ban', true, systemName))
+            .then(_ => showToastMessage(`${getPlayerName(player, true)} has been banned.`, 'ban', true, systemName))
             .catch(err => console.error(err));
         }
       };
@@ -264,7 +266,7 @@ function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLoca
   }
 
   const showBadge = player?.account && player.badge;
-  const showBadgeOverlay = showBadge && player.badge === 'mono';
+  const showBadgeOverlay = showBadge && overlayBadgeIds.indexOf(player.badge) > -1;
   const badgeUrl = showBadge ? `images/badge/${player.badge}.png` : '';
 
   playerListEntryBadge.classList.toggle('hidden', !showBadge);
@@ -274,11 +276,17 @@ function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLoca
   playerListEntryBadgeOverlay.setAttribute('style', `-webkit-mask-image: url('${badgeUrl}'); mask-image: url('${badgeUrl}');`);
 
   if (showBadge) {
-    const badgeGame = Object.keys(localizedBadges).find(game => {
-      return Object.keys(localizedBadges[game]).find(b => b === player.badge);
-    });
-    if (badgeGame)
-      addTooltip(playerListEntryBadge, getMassagedLabel(localizedBadges[badgeGame][player.badge].name, true), true, true);
+    if (localizedBadges) {
+      const badgeGame = Object.keys(localizedBadges).find(game => {
+        return Object.keys(localizedBadges[game]).find(b => b === player.badge);
+      });
+      if (badgeGame)
+        playerListEntryBadge._badgeTippy = addOrUpdateTooltip(playerListEntryBadge, getMassagedLabel(localizedBadges[badgeGame][player.badge].name, true), true, true, false, null, playerListEntryBadge._badgeTippy);
+    }
+    if (player.name) {
+      addOrUpdatePlayerBadgeGalleryTooltip(playerListEntryBadge, player.name, player.systemName || getDefaultUiTheme());
+      playerListEntryBadge.classList.toggle('badgeButton', player.name);
+    }
   }
 
   if (partyOwnerIcon)
@@ -355,6 +363,16 @@ function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLoca
     });
   }
 
+  if (sortEntries)
+    sortPlayerListEntries(playerList);
+
+  if (playerList.id === 'playerList')
+    updateMapPlayerCount(playerList.childElementCount);
+
+  return playerListEntry;
+}
+
+function sortPlayerListEntries(playerList) {
   if (playerList.childElementCount > 1) {
     const playerListEntries = playerList.querySelectorAll('.playerListEntry');
 
@@ -373,11 +391,6 @@ function addOrUpdatePlayerListEntry(playerList, systemName, name, uuid, showLoca
         playerList.appendChild(ple);
     });
   }
-
-  if (playerList.id === 'playerList')
-    updateMapPlayerCount(playerList.childElementCount);
-
-  return playerListEntry;
 }
 
 function updatePlayerListEntrySprite(playerList, sprite, idx, uuid) {
@@ -439,7 +452,7 @@ function getPlayerListIdEntrySortFunc(playerListId) {
           }
           if (b.dataset.unnamed)
             return -1;
-          if (playerA?.account !== playerB?.account)
+          if (playerA?.account != playerB?.account)
             return playerA?.account ? -1 : 1;
           return 0;
         };
@@ -494,7 +507,7 @@ function getPlayerListIdEntrySortFunc(playerListId) {
           }
           if (b.dataset.unnamed)
             return -1;
-          if (playerA?.account !== playerB?.account)
+          if (playerA?.account != playerB?.account)
             return playerA?.account ? -1 : 1;
           return 0;
         };
@@ -660,7 +673,7 @@ function onPlayerConnectedOrUpdated(systemName, name, id) {
     if (systemName)
       globalPlayerData[uuid].systemName = systemName;
   }
-  addOrUpdatePlayerListEntry(null, systemName, name, uuid);
+  addOrUpdatePlayerListEntry(null, systemName, name, uuid, false, true);
 }
 
 // EXTERNAL

@@ -1,11 +1,13 @@
 const gameIds = ['yume', '2kki', 'flow', 'prayers', 'deepdreams', 'someday', 'amillusion', 'unevendream', 'braingirl'];
 const gameIdMatch = new RegExp('(?:' + gameIds.join('|') + ')').exec(window.location);
 const gameId = gameIdMatch ? gameIdMatch[0] : gameIds[1];
-const localizedGameIds = [ 'yume', '2kki', 'flow', 'prayers', 'deepdreams', 'braingirl' ];
+const localizedGameIds = [ 'yume', '2kki', 'flow', 'prayers', 'deepdreams', 'someday', 'amillusion', 'braingirl' ];
 const gameDefaultLangs = {
   '2kki': 'ja',
   'flow': 'ja'
 };
+const dependencyFiles = {};
+const dependencyMaps = {};
 const hasTouchscreen = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 const tippyConfig = {
   arrow: false,
@@ -27,6 +29,27 @@ function injectScripts() {
   if (gameId === '2kki')
     scripts.push('2kki.js');
   scripts = scripts.concat([ 'play.js', 'gamecanvas.js', 'index.js' ]);
+  let hasChanges = false;
+  let hasClientChanges = false;
+
+  const initialDependencies = [ 'play.css' ];
+
+  const scriptTags = document.querySelectorAll('script');
+  for (let tag of scriptTags) {
+    if (tag.src.startsWith(window.location.origin))
+      initialDependencies.push(tag.src);
+  }
+
+  const checkInitialDependencyModified = function (index) {
+    checkDependencyModified(initialDependencies[index], null, xhr => {
+      if (xhr.status === 200)
+        hasChanges = true;
+      if (index < initialDependencies.length - 1)
+        checkInitialDependencyModified(index + 1);
+      else
+        injectScript(0);
+    });
+  };
 
   const injectScript = function (index) {
     const script = scripts[index];
@@ -35,26 +58,136 @@ function injectScripts() {
       : () => { // Assumes last script is index.js
         if (typeof ENV !== 'undefined')
           ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = '#canvas';
-  
-          Module.postRun.push(() => {
+        Module.postRun.push(() => {
+          if (hasChanges)
+            reloadForDependencyUpdates(hasClientChanges);
+          else {
             Module.INITIALIZED = true;
             document.getElementById('loadingOverlay').classList.add('loaded');
             fetchAndUpdatePlayerInfo();
             setInterval(checkSession, 60000);
-          });
-          if (typeof onResize !== 'undefined')
-            Module.postRun.push(onResize);
+            window.onbeforeunload = function () {
+              return localizedMessages.leavePage;
+            };
+          }
+        });
+        if (typeof onResize !== 'undefined')
+          Module.postRun.push(onResize);
       };
 
-    const scriptTag = document.createElement('script');
-    scriptTag.type = 'text/javascript';
-    scriptTag.src = script;
-    scriptTag.onload = loadFunc;
+    checkDependencyModified(script,
+      xhr => {
+        const scriptTag = document.createElement('script');
+        scriptTag.type = 'text/javascript';
+        scriptTag.text = xhr.responseText;
 
-    document.body.appendChild(scriptTag);
+        document.body.appendChild(scriptTag);
+      },
+      xhr => {
+        if (xhr.status === 200) {
+          hasChanges = true;
+          if (script === 'index.js')
+            hasClientChanges = true;
+        }
+        loadFunc();
+      }
+    );
   };
 
-  injectScript(0);
+  checkInitialDependencyModified(0);
+}
+
+function checkDependencyModified(filename, onLoaded, onChecked) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('get', filename, true);
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState == 4) {
+      if (dependencyFiles.hasOwnProperty(filename)) {
+        if (onChecked)
+          onChecked(xhr)
+      } else {
+        if (onLoaded)
+          onLoaded(xhr)
+
+        dependencyFiles[filename] = xhr.getResponseHeader('Last-Modified');
+
+        xhr.open('get', filename, true);
+        xhr.setRequestHeader('If-Modified-Since', dependencyFiles[filename]);
+        xhr.send(null);
+      }
+    }
+  };
+  xhr.send(null);
+}
+
+function reloadForDependencyUpdates(hasClientChanges) {
+  if (hasClientChanges) {
+    const req = { headers: { 'If-Modified-Since': dependencyFiles['index.js'] } };
+    fetch('index.json', req)
+      .finally(_ => {
+        fetch('index.wasm', req).finally(_ => {
+          window.location = window.location;
+        });
+      });
+  } else
+    window.location = window.location;
+}
+
+function checkDependenciesModified() {
+  let hasChanges = false;
+  const dependencyPaths = Object.keys(dependencyFiles);
+  const checkDependency = function (index) {
+    const dep = dependencyPaths[index];
+    fetch(dep, { headers: { 'If-Modified-Since': dependencyFiles[dep] }})
+    .then(response => {
+      if (response.status === 200) {
+        if (response.headers.has('Last-Modified'))
+          dependencyFiles[dep] = response.headers.get('Last-Modified');
+        hasChanges = true;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+    })
+    .finally(() => {
+      if (index < dependencyPaths.length - 1)
+        checkDependency(index + 1);
+      else if (hasChanges)
+        showSystemToastMessage('siteUpdates', 'info');
+    });
+  };
+  if (dependencyPaths.length)
+    checkDependency(0);
+}
+
+function fetchNewest(path, important, req) {
+  return new Promise((resolve, reject) => {
+    let ret;
+    if (!req)
+      req = {};
+
+    fetch(path, req)
+      .then(response => {
+        ret = response;
+        if (response.headers.has('Last-Modified')) {
+          const lastModified = response.headers.get('Last-Modified');
+          if (!req.headers)
+            req.headers = {};
+          req.headers['If-Modified-Since'] = lastModified;
+          if (important)
+            dependencyFiles[path] = lastModified;
+          fetch(path, req)
+            .then(response => {
+              if (response.status === 200)
+                ret = response;
+              resolve(ret);
+            })
+            .catch(err => reject(err));
+        } else
+          resolve(ret);
+      })
+      .catch(err => reject(err));;
+  });
 }
 
 function apiFetch(path) {
@@ -92,7 +225,15 @@ function addTooltip(target, content, asTooltipContent, delayed, interactive, opt
   options.content = asTooltipContent ? `<div class="tooltipContent">${content}</div>` : content;
   options.appendTo = document.getElementById('layout');
   target._tippy?.destroy();
-  tippy(target, Object.assign(options, tippyConfig));
+  return tippy(target, Object.assign(options, tippyConfig));
+}
+
+function addOrUpdateTooltip(target, content, asTooltipContent, delayed, interactive, options, instance) {
+  if (!instance)
+    return addTooltip(target, content, asTooltipContent, delayed, interactive, options);
+
+  instance.setContent(asTooltipContent ? `<div class="tooltipContent">${content}</div>` : content);
+  return instance;
 }
 
 let loadedLang = false;
@@ -289,4 +430,6 @@ function getCookie(cName) {
     injectScripts();
   else
     trySyncSave().then(_ => injectScripts());
+
+  setInterval(checkDependenciesModified, 300000);
 })();
